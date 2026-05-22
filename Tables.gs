@@ -179,21 +179,15 @@ function upgradeToTableFormulas(ss) {
     '=SUMIFS(' + inc + '[Amount (PKR)],' + inc + '[Month],C2)'
   );
 
-  // E6 — Total Spending
-  db.getRange('E6').setFormula(
-    '=SUMIFS(' + tx + '[Amount (PKR)],' + tx + '[Month],C2,' + tx + '[Type],"Expense")'
-  );
+  // E6 — Total Spending (= B11 + E11, net of reimbursements)
+  db.getRange('E6').setFormula('=B11+E11');
 
   // H6 — Net Cash Flow (=B6-E6): no table ref needed, keep as-is
   // K6 — Savings Rate (=IFERROR((B6-E6)/B6,0)): no table ref needed
 
-  // B11 — Shared Spending
-  db.getRange('B11').setFormula(
-    '=SUMIFS(' + tx + '[Amount (PKR)],' +
-    tx + '[Month],C2,' +
-    tx + '[Type],"Expense",' +
-    tx + '[Shared?],"Yes")'
-  );
+  // B11 — Shared Spending net of reimbursements
+  // QUERY-based; must stay A1-style even in table mode
+  db.getRange('B11').setFormula(SHARED_NET_FORMULA);
 
   // E11 — Personal Spending (net of Group Split reimbursements)
   // QUERY-based; must stay A1-style even in table mode (QUERY ignores structured refs)
@@ -266,8 +260,8 @@ function revertToA1Formulas(ss) {
   // Dashboard cards
   var db = ss.getSheetByName(SHEETS.DASHBOARD);
   db.getRange('B6').setFormula('=SUMIFS(Income!E:E,Income!F:F,C2)');
-  db.getRange('E6').setFormula('=SUMIFS(Transactions!J:J,Transactions!M:M,C2,Transactions!C:C,"Expense")');
-  db.getRange('B11').setFormula('=SUMIFS(Transactions!J:J,Transactions!M:M,C2,Transactions!C:C,"Expense",Transactions!L:L,"Yes")');
+  db.getRange('E6').setFormula('=B11+E11');
+  db.getRange('B11').setFormula(SHARED_NET_FORMULA);
   db.getRange('E11').setFormula(PERSONAL_NET_FORMULA);
   db.getRange('H11').setFormula("=IFERROR(SUM('Group Splits'!I:I),0)");
   db.getRange('K11').setFormula('=IFERROR(SUMIF(Subscriptions!I:I,">0",Subscriptions!I:I),0)');

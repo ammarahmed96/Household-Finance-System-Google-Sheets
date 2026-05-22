@@ -88,10 +88,10 @@ function setupDashboard(ss) {
     { label: 'Monthly Income',    subLabel: 'Total for selected month',
       f: '=SUMIFS(Income!E:E,Income!F:F,C2)',
       fmt: PKR_FORMAT, col: 2, accentColor: COLORS.SUCCESS, bg: COLORS.LIGHT_GREEN },
-    { label: 'Total Spending',    subLabel: 'All expenses this month',
-      f: '=SUMIFS(Transactions!J:J,Transactions!M:M,C2,Transactions!C:C,"Expense")',
+    { label: 'Total Spending',    subLabel: 'Personal + shared, net of reimbursements',
+      f: '=B11+E11',
       fmt: PKR_FORMAT, col: 5, accentColor: COLORS.DANGER, bg: COLORS.LIGHT_RED },
-    { label: 'Net Cash Flow',     subLabel: 'Income minus spending',
+    { label: 'Net Cash Flow',     subLabel: 'Income minus net spending',
       f: '=B6-E6',
       fmt: PKR_FORMAT, col: 8, accentColor: COLORS.PRIMARY, bg: COLORS.LIGHT_BLUE },
     { label: 'Savings Rate',      subLabel: '% of income saved',
@@ -100,8 +100,8 @@ function setupDashboard(ss) {
   ];
 
   var cards2 = [
-    { label: 'Shared Spending',    subLabel: 'Joint household expenses',
-      f: '=SUMIFS(Transactions!J:J,Transactions!M:M,C2,Transactions!C:C,"Expense",Transactions!L:L,"Yes")',
+    { label: 'Shared Spending',    subLabel: 'Net of group reimbursements',
+      f: SHARED_NET_FORMULA,
       fmt: PKR_FORMAT, col: 2, accentColor: COLORS.PRIMARY, bg: COLORS.LIGHT_BLUE },
     { label: 'Personal Spending',  subLabel: 'Net of group reimbursements',
       f: PERSONAL_NET_FORMULA,

@@ -46,6 +46,20 @@ var PERSONAL_NET_FORMULA =
   '"SELECT Col12,SUM(Col8) WHERE Col12<>\'\' GROUP BY Col12 LABEL SUM(Col8)\'\'",0),{"",0}),' +
   'SUM(txAmts-IFERROR(VLOOKUP(txKeys,reimb,2,FALSE),0))),0)';
 
+// ── SHARED SPENDING NET FORMULA (Dashboard B11) ────────────────
+// Identical to PERSONAL_NET_FORMULA but for Shared?=Yes transactions.
+// Subtracts reimbursements received from Group Splits for shared expenses.
+
+var SHARED_NET_FORMULA =
+  '=IFERROR(LET(' +
+  'txData,QUERY(Transactions!A2:Q,' +
+  '"SELECT Col10,Col17 WHERE Col3=\'Expense\' AND Col13=\'"&C2&"\' AND Col12=\'Yes\' LABEL Col10\'\',Col17\'\'",0),' +
+  'txAmts,INDEX(txData,,1),' +
+  'txKeys,INDEX(txData,,2),' +
+  'reimb,IFERROR(QUERY(\'Group Splits\'!A4:L,' +
+  '"SELECT Col12,SUM(Col8) WHERE Col12<>\'\' GROUP BY Col12 LABEL SUM(Col8)\'\'",0),{"",0}),' +
+  'SUM(txAmts-IFERROR(VLOOKUP(txKeys,reimb,2,FALSE),0))),0)';
+
 function addFormulas(ss) {
   // ── Transactions ─────────────────────────────────────────
   var tx = ss.getSheetByName(SHEETS.TRANSACTIONS);
