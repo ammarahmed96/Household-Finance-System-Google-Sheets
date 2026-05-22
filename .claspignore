@@ -1,0 +1,10 @@
+# Ignore all tool/config directories — only root .gs files should be pushed
+.claude/**
+.claude-flow/**
+.swarm/**
+node_modules/**
+
+# Ignore non-script files
+README.md
+CLAUDE.md
+.mcp.json

@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# clasp credentials (not the project config .clasp.json)
+.clasprc.json
+
+# Local tooling directories
+.claude/
+.claude-flow/
+.swarm/
+
+# Local MCP server config
+.mcp.json
+
+# Environment / secrets
+.env
+*.env.local
+
+# Logs
+*.log
