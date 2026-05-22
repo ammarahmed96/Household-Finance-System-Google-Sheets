@@ -326,7 +326,17 @@ function processSubscriptionSplits(ss) {
 
 // ── TRANSACTION → GROUP SPLIT: onEdit handler ────────────────
 // Simple trigger — fires automatically on every edit, no installation needed.
-// Watches Transactions col O (Group Split?) and col P (# People).
+//
+// BOTH conditions must be true before rows are created:
+//   1. Transactions[Group Split?] = "Yes"   (col O)
+//   2. Transactions[# People]    >= 1        (col P)
+//
+// Either condition can be set in either order — the trigger fires on both
+// and creates rows only when both are satisfied. Safe to edit them multiple
+// times: idempotency is enforced inside createGroupSplitRowsFromTx via Tx Key.
+//
+// When Group Split? goes back to No/blank: removeOrFlagGroupSplitRows runs.
+//   Empty auto-rows → cleared. Rows with user data → flagged, user reviews.
 
 function onEdit(e) {
   if (!e || !e.range) return;
@@ -335,21 +345,64 @@ function onEdit(e) {
 
   var col = e.range.getColumn();
   var row = e.range.getRow();
+  // Only single-cell edits on data rows (row 1 is the header)
   if (row < 2 || e.range.getNumRows() > 1 || e.range.getNumColumns() > 1) return;
 
   var ss = e.source;
 
+  // ── Col O: Group Split? changed ───────────────────────────────
   if (col === TX_COL_GROUP_SPLIT) {
     if (e.value === 'Yes') {
+      // Both conditions must be met. Check # People right now.
+      var numPplO = parseInt(sheet.getRange(row, TX_COL_NUM_PEOPLE).getValue(), 10);
+      if (!numPplO || numPplO < 1) {
+        // # People not set yet — creation will be triggered automatically
+        // when the user fills in # People (handled by the col P branch below)
+        ss.toast(
+          'Set "# People" (whole number ≥ 1) — Group Split rows will be created automatically.',
+          'Group Split: Set # People', 7
+        );
+        return;
+      }
       createGroupSplitRowsFromTx(ss, sheet, row);
     } else {
+      // No, blank, or any non-Yes value: safely remove or flag linked rows
       removeOrFlagGroupSplitRows(ss, sheet, row);
     }
-  } else if (col === TX_COL_NUM_PEOPLE) {
-    // Create rows when # People is filled and Group Split? is already Yes but no key yet
+    return;
+  }
+
+  // ── Col P: # People changed ────────────────────────────────────
+  if (col === TX_COL_NUM_PEOPLE) {
+    // Only act when Group Split? is Yes
     if (sheet.getRange(row, TX_COL_GROUP_SPLIT).getValue() !== 'Yes') return;
-    if (!sheet.getRange(row, TX_COL_TX_KEY).getValue()) {
+
+    var newCount = parseInt(e.value, 10);
+    if (!newCount || newCount < 1) return;  // blank, 0, or invalid — wait for valid entry
+
+    var existingKey = sheet.getRange(row, TX_COL_TX_KEY).getValue();
+
+    if (!existingKey) {
+      // No rows yet — both conditions now satisfied, create them
       createGroupSplitRowsFromTx(ss, sheet, row);
+    } else {
+      // Rows already exist — check if count matches the new # People value
+      var grpSh = ss.getSheetByName(SHEETS.GROUP_SPLITS);
+      var gsLast = grpSh.getLastRow();
+      var existingCount = 0;
+      if (gsLast >= 4) {
+        var keyVals = grpSh.getRange(4, GS_COL_TX_KEY, gsLast - 3, 1).getValues();
+        keyVals.forEach(function(r) { if (r[0] === existingKey) existingCount++; });
+      }
+      if (existingCount !== newCount) {
+        ss.toast(
+          existingCount + ' Group Split row(s) exist for this transaction. ' +
+          '# People is now ' + newCount + '. ' +
+          'Add or remove rows manually in the Group Splits tab to match.',
+          'Group Split: Rows Need Update', 10
+        );
+      }
+      // existingCount === newCount: already correct, nothing to do
     }
   }
 }
@@ -361,39 +414,67 @@ function makeTxKey(txRow, date, amount) {
   return 'TX_R' + txRow + '_' + dateStr + '_' + Math.round(Math.abs(amount || 0));
 }
 
+// ── CREATE GROUP SPLIT ROWS ───────────────────────────────────
+// Creates N rows in Group Splits for the given Transactions row.
+//
+// PRECONDITIONS (validated by onEdit before calling, re-checked here as guard):
+//   Transactions[Group Split?] = "Yes"  AND  Transactions[# People] >= 1
+//
+// AUTO-FILLED from the source transaction (never edit these manually in GS):
+//   A = Date, B = Paid By, C = Description, D = Category,
+//   E = Total Bill (PKR), L = Tx Key (hidden — links back to the transaction)
+//
+// LEFT BLANK/ZERO for the user to fill in manually:
+//   F = Owed By (person name), G = Their Share (PKR), H = Reimbursed (starts 0),
+//   K = Notes
+//
+// IDEMPOTENCY: checks stored Tx Key in Transactions Q against Group Splits L.
+//   Skips creation if matching rows already exist — safe to trigger multiple times.
+//
+// TX KEY FORMAT: "TX_R{txRow}_{yyyyMMdd}_{roundedPKRAmount}"
+//   Deterministic — same transaction always produces the same key.
+//   Stored in hidden Transactions col Q and hidden Group Splits col L.
+
 function createGroupSplitRowsFromTx(ss, txSheet, txRow) {
+  // Read cols A–P in one call (TX_COL_NUM_PEOPLE = col P = 16)
   var txData   = txSheet.getRange(txRow, 1, 1, TX_COL_NUM_PEOPLE).getValues()[0];
   var date     = txData[0];   // A Date
   var paidBy   = txData[1];   // B Person
   var cat      = txData[3];   // D Category
   var desc     = txData[5];   // F Description
-  var origAmt  = txData[7];   // H Orig.Amount
-  var exchRate = txData[8];   // I Exch.Rate
-  var amtPKR   = txData[9];   // J Amount(PKR) — ARRAYFORMULA (may already be resolved)
+  var origAmt  = txData[7];   // H Orig. Amount (in transaction currency)
+  var exchRate = txData[8];   // I Exch. Rate
+  var amtPKR   = txData[9];   // J Amount (PKR) — ARRAYFORMULA value
   var numPpl   = parseInt(txData[TX_COL_NUM_PEOPLE - 1], 10);  // P # People
 
+  // Prefer ARRAYFORMULA-computed PKR amount. Fall back to raw H×I in case the
+  // ARRAYFORMULA hasn't recalculated yet when onEdit fires.
   var totalAmt = (amtPKR > 0) ? amtPKR : (origAmt || 0) * (exchRate > 0 ? exchRate : 1);
 
+  // ── Validation ─────────────────────────────────────────────
   if (!date || !(date instanceof Date)) {
-    ss.toast('Enter the transaction date before enabling Group Split?.', 'Group Split', 6);
+    ss.toast('Add a Date to the transaction before enabling Group Split?.', 'Group Split', 6);
     return;
   }
   if (!totalAmt || totalAmt <= 0) {
-    ss.toast('Enter the transaction amount before enabling Group Split?.', 'Group Split', 6);
+    ss.toast('Add an amount to the transaction before enabling Group Split?.', 'Group Split', 6);
     return;
   }
   if (!numPpl || numPpl < 1) {
-    ss.toast('Set # People first, then set Group Split? = Yes.', 'Group Split', 6);
+    // Defensive guard — onEdit should have already caught this, but protect direct calls too
+    ss.toast('Set "# People" (≥ 1) before enabling Group Split?.', 'Group Split', 6);
     return;
   }
 
-  // Idempotency: if a key is already stored and matching rows exist, skip
+  // ── Idempotency check ──────────────────────────────────────
+  // If a Tx Key is stored in Q AND matching rows exist in Group Splits → skip.
+  // If key exists but rows were cleared → fall through and re-create with the same key.
   var storedKey = txSheet.getRange(txRow, TX_COL_TX_KEY).getValue();
   var grpSh = ss.getSheetByName(SHEETS.GROUP_SPLITS);
   if (storedKey) {
-    var lastRow = grpSh.getLastRow();
-    if (lastRow >= 4) {
-      var existingKeys = grpSh.getRange(4, GS_COL_TX_KEY, lastRow - 3, 1).getValues();
+    var lastCheck = grpSh.getLastRow();
+    if (lastCheck >= 4) {
+      var existingKeys = grpSh.getRange(4, GS_COL_TX_KEY, lastCheck - 3, 1).getValues();
       if (existingKeys.some(function(r) { return r[0] === storedKey; })) {
         ss.toast('Group Split rows already exist for this transaction.', 'Already Created', 4);
         return;
@@ -402,8 +483,11 @@ function createGroupSplitRowsFromTx(ss, txSheet, txRow) {
   }
 
   var txKey = makeTxKey(txRow, date, totalAmt);
-  // Scan col A (Date) for true last data row — getLastRow() is inflated
-  // by ARRAYFORMULA outputs in cols I/J which emit "" for all empty rows.
+
+  // ── Find the next available row ───────────────────────────
+  // getLastRow() is inflated by ARRAYFORMULA outputs in cols I/J (they emit ""
+  // for every empty row). Scan col A (Date, user-written) instead — its last
+  // non-empty row is the true data boundary.
   var gsLast = grpSh.getLastRow();
   var nextRow = 4;
   if (gsLast >= 4) {
@@ -413,35 +497,57 @@ function createGroupSplitRowsFromTx(ss, txSheet, txRow) {
     }
   }
 
-  // Write A–H (cols 1–8); skip I=Outstanding and J=Month (ARRAYFORMULA columns)
+  // ── Write N rows ──────────────────────────────────────────
+  // Cols A–H only. I (Outstanding) and J (Month) are ARRAYFORMULA columns —
+  // never write static values into them or ARRAYFORMULA expansion breaks.
+  // F (Owed By) and G (Their Share) are blank/0 — user fills them in manually.
   var rowsAH = [];
   for (var i = 0; i < numPpl; i++) {
     rowsAH.push([date, paidBy, desc, cat, totalAmt, '', 0, 0]);
+    //              A     B     C    D      E        F  G  H
   }
-  var blank = Array.apply(null, {length: numPpl}).map(function() { return ['']; });
-  var keys  = Array.apply(null, {length: numPpl}).map(function() { return [txKey]; });
+  var blankNotes = Array.apply(null, {length: numPpl}).map(function() { return ['']; });
+  var txKeys     = Array.apply(null, {length: numPpl}).map(function() { return [txKey]; });
 
   grpSh.getRange(nextRow, 1,              numPpl, 8).setValues(rowsAH);
-  grpSh.getRange(nextRow, 11,             numPpl, 1).setValues(blank);  // K Notes
-  grpSh.getRange(nextRow, GS_COL_TX_KEY, numPpl, 1).setValues(keys);   // L Tx Key
+  grpSh.getRange(nextRow, 11,             numPpl, 1).setValues(blankNotes);  // K Notes
+  grpSh.getRange(nextRow, GS_COL_TX_KEY, numPpl, 1).setValues(txKeys);      // L Tx Key (hidden)
 
   grpSh.getRange(nextRow, 1, numPpl, 1).setNumberFormat('MM/DD/YYYY');
   grpSh.getRange(nextRow, 5, numPpl, 1).setNumberFormat(PKR_FORMAT);
   grpSh.getRange(nextRow, 7, numPpl, 2).setNumberFormat(PKR_FORMAT);
 
+  // Store key in Transactions Q so future onEdit calls can find these rows
   txSheet.getRange(txRow, TX_COL_TX_KEY).setValue(txKey);
 
   ss.toast(
-    numPpl + ' rows created in Group Splits for "' + (desc || 'this transaction') + '". ' +
-    'Fill in friend names and their share amounts.',
+    numPpl + ' row(s) created in Group Splits for "' + (desc || 'this transaction') + '". ' +
+    'Fill in Owed By and Their Share for each person.',
     'Group Split Created', 8
   );
-  Logger.log('createGroupSplitRowsFromTx: key=' + txKey + ' rows=' + numPpl + ' at GS row=' + nextRow);
+  Logger.log('createGroupSplitRowsFromTx: key=' + txKey + ' rows=' + numPpl + ' starting at GS row ' + nextRow);
 }
+
+// ── REMOVE OR FLAG GROUP SPLIT ROWS ──────────────────────────
+// Called when Transactions[Group Split?] is set to anything other than "Yes"
+// (No, blank, cleared). Finds all Group Splits rows linked via Tx Key and:
+//
+// SAFE REMOVAL: rows where F (Owed By), G (Their Share), H (Reimbursed),
+//   and K (Notes) are all blank/zero have no user data — they are cleared
+//   with clearContent(). clearContent() is used intentionally rather than
+//   deleteRow() to protect the ARRAYFORMULA anchors at I4 and J4.
+//
+// FLAGGED (kept): rows where any of F/G/H/K have user-entered values.
+//   The user is shown a toast prompting manual review. This prevents silent
+//   data loss when a user has already started filling in split details.
+//
+// Tx Key is removed from Transactions Q only when ALL linked rows were cleared
+// (no flagged rows). If some rows were flagged, the key is kept so the link
+// remains intact for reference.
 
 function removeOrFlagGroupSplitRows(ss, txSheet, txRow) {
   var txKey = txSheet.getRange(txRow, TX_COL_TX_KEY).getValue();
-  if (!txKey) return;
+  if (!txKey) return;  // No auto-created rows linked to this transaction
 
   var grpSh   = ss.getSheetByName(SHEETS.GROUP_SPLITS);
   var lastRow = grpSh.getLastRow();
@@ -452,37 +558,48 @@ function removeOrFlagGroupSplitRows(ss, txSheet, txRow) {
   var flagged = [];
 
   data.forEach(function(r, i) {
-    if (r[GS_COL_TX_KEY - 1] !== txKey) return;  // col L (0-indexed = 11)
-    var owedBy     = r[5];   // F Owed By
-    var share      = r[6];   // G Their Share
-    var reimbursed = r[7];   // H Reimbursed
-    var notes      = r[10];  // K Notes
-    var hasEdits = (owedBy && String(owedBy).trim() !== '') ||
-                   (share > 0) || (reimbursed > 0) ||
-                   (notes && String(notes).trim() !== '');
-    (hasEdits ? flagged : toClear).push(i + 4);
+    if (r[GS_COL_TX_KEY - 1] !== txKey) return;  // GS_COL_TX_KEY = 12, 0-indexed = 11
+
+    // A row has "user data" if the user has entered a name, amount, or notes.
+    // F (Owed By), G (Their Share > 0), H (Reimbursed > 0), K (Notes).
+    var owedBy     = r[5];   // F
+    var share      = r[6];   // G
+    var reimbursed = r[7];   // H
+    var notes      = r[10];  // K
+    var hasUserData = (owedBy     && String(owedBy).trim() !== '') ||
+                      (share      > 0) ||
+                      (reimbursed > 0) ||
+                      (notes      && String(notes).trim() !== '');
+
+    (hasUserData ? flagged : toClear).push(i + 4);  // sheet row = data index + 4
   });
 
-  // Clear rows that have no user data (clearContent preserves ARRAYFORMULA at I4/J4)
+  // Clear auto-rows with no user data.
+  // clearContent() preserves cell formatting and ARRAYFORMULA anchors at I4/J4.
   toClear.forEach(function(sheetRow) {
-    grpSh.getRange(sheetRow, 1, 1, 8).clearContent();   // A–H
-    grpSh.getRange(sheetRow, 11, 1, 2).clearContent();  // K–L
+    grpSh.getRange(sheetRow, 1,  1, 8).clearContent();  // A–H
+    grpSh.getRange(sheetRow, 11, 1, 2).clearContent();  // K (Notes) + L (Tx Key)
   });
 
   if (flagged.length > 0) {
     ss.toast(
-      flagged.length + ' Group Split row(s) have data and were kept. ' +
-      'Review Group Splits tab to manage them manually.',
-      'Manual Review Needed', 10
+      flagged.length + ' Group Split row(s) have user-entered data and were kept. ' +
+      'Review the Group Splits tab to manage them manually.',
+      'Group Split: Manual Review Needed', 10
     );
   } else if (toClear.length > 0) {
     ss.toast(toClear.length + ' empty Group Split row(s) cleared.', 'Group Split', 5);
   }
 
+  // Remove key from Transactions only when cleanup was complete (no user data was flagged)
   if (flagged.length === 0) {
     txSheet.getRange(txRow, TX_COL_TX_KEY).clearContent();
   }
-  Logger.log('removeOrFlagGroupSplitRows: key=' + txKey + ' cleared=' + toClear.length + ' flagged=' + flagged.length);
+
+  Logger.log(
+    'removeOrFlagGroupSplitRows: key=' + txKey +
+    ' cleared=' + toClear.length + ' flagged=' + flagged.length
+  );
 }
 
 // ── RECURRING TRANSACTIONS ────────────────────────────────────

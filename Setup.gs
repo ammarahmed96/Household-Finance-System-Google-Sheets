@@ -148,7 +148,8 @@ function setupTransactions(ss) {
 
   var widths = [100, 85, 90, 120, 140, 200, 80, 110, 90, 110, 100, 70, 115, 200, 90, 75];
   widths.forEach(function(w, i) { sh.setColumnWidth(i + 1, w); });
-  sh.hideColumns(TX_COL_TX_KEY);  // Q — internal key, invisible to user
+  sh.setColumnWidth(TX_COL_TX_KEY, 1);  // collapse before hiding (avoids phantom width on unhide)
+  sh.hideColumns(TX_COL_TX_KEY);         // Q — internal key, invisible to user
 
   var ROWS = 1000;
 
@@ -164,10 +165,14 @@ function setupTransactions(ss) {
   sh.getRange(2, 8,  ROWS, 1).setNumberFormat(PKR_FORMAT);
   sh.getRange(2, 9,  ROWS, 1).setNumberFormat(RATE_FORMAT);
   sh.getRange(2, 10, ROWS, 1).setNumberFormat(PKR_FORMAT);
+  // # People: require a whole number >= 1.
+  // Combined with Group Split? = Yes, this is the trigger for auto-row creation.
   sh.getRange(2, TX_COL_NUM_PEOPLE, ROWS, 1).setDataValidation(
     SpreadsheetApp.newDataValidation()
-      .requireNumberGreaterThan(0).setAllowInvalid(false)
-      .setHelpText('Number of people to split with').build()
+      .requireNumberGreaterThanOrEqualTo(1)
+      .setAllowInvalid(false)
+      .setHelpText('Whole number ≥ 1: how many Group Split rows to create')
+      .build()
   );
 
   // Sample row — PKR domestic transaction
