@@ -208,12 +208,7 @@ function upgradeToTableFormulas(ss) {
     'Travel', 'Gifts', 'Other'
   ];
   cats.forEach(function(cat, i) {
-    db.getRange(17 + i, 10).setFormula(
-      '=SUMIFS(' + tx + '[Amount (PKR)],' +
-      tx + '[Month],E2,' +
-      tx + '[Type],"Expense",' +
-      tx + '[Category],"' + cat + '")'
-    );
+    db.getRange(17 + i, 10).setFormula(buildCategoryNetFormula(cat));
   });
 
   Logger.log('upgradeToTableFormulas: structured references applied to Budget and Dashboard.');
@@ -273,9 +268,7 @@ function revertToA1Formulas(ss) {
     'Travel', 'Gifts', 'Other'
   ];
   cats.forEach(function(cat, i) {
-    db.getRange(17 + i, 10).setFormula(
-      '=SUMIFS(Transactions!J:J,Transactions!M:M,E2,Transactions!C:C,"Expense",Transactions!D:D,"' + cat + '")'
-    );
+    db.getRange(17 + i, 10).setFormula(buildCategoryNetFormula(cat));
   });
 
   Logger.log('revertToA1Formulas: all formulas restored to A1-style.');

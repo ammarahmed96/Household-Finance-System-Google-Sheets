@@ -302,16 +302,16 @@ function addTransactionsSummaryBlock(ss) {
     .setFontWeight('bold').setFontSize(11).setHorizontalAlignment('center').setVerticalAlignment('middle');
 
   cell(2, 19).setValue('Month:').setFontColor(COLORS.MID_TEXT).setFontStyle('italic');
-  cell(2, 20).setFormula('=Dashboard!$C$2').setFontWeight('bold').setFontColor(COLORS.PRIMARY);
+  cell(2, 20).setFormula('=Dashboard!$E$2').setFontWeight('bold').setFontColor(COLORS.PRIMARY);
 
   var metrics = [
-    [4, 'Spending (this month)',   '=SUMIFS(J:J,M:M,Dashboard!$C$2,C:C,"Expense")',           PKR_FORMAT, COLORS.DANGER],
-    [5, 'Income (this month)',     '=SUMIFS(J:J,M:M,Dashboard!$C$2,C:C,"Income")',             PKR_FORMAT, COLORS.SUCCESS],
-    [6, 'Shared expenses',         '=SUMIFS(J:J,M:M,Dashboard!$C$2,C:C,"Expense",L:L,"Yes")', PKR_FORMAT, COLORS.DARK_TEXT],
-    [7, 'Personal expenses',       '=SUMIFS(J:J,M:M,Dashboard!$C$2,C:C,"Expense",L:L,"No")',  PKR_FORMAT, COLORS.DARK_TEXT],
+    [4, 'Spending (this month)',   '=SUMIFS(J:J,M:M,Dashboard!$E$2,C:C,"Expense")',           PKR_FORMAT, COLORS.DANGER],
+    [5, 'Income (this month)',     '=SUMIFS(J:J,M:M,Dashboard!$E$2,C:C,"Income")',             PKR_FORMAT, COLORS.SUCCESS],
+    [6, 'Shared expenses',         '=SUMIFS(J:J,M:M,Dashboard!$E$2,C:C,"Expense",L:L,"Yes")', PKR_FORMAT, COLORS.DARK_TEXT],
+    [7, 'Personal expenses',       '=SUMIFS(J:J,M:M,Dashboard!$E$2,C:C,"Expense",L:L,"No")',  PKR_FORMAT, COLORS.DARK_TEXT],
     [8, 'Net (after group reimb.)',
-     '=SUMIFS(J:J,M:M,Dashboard!$C$2,C:C,"Expense")' +
-     '-IFERROR(SUMIF(\'Group Splits\'!J:J,Dashboard!$C$2,\'Group Splits\'!H:H),0)',
+     '=SUMIFS(J:J,M:M,Dashboard!$E$2,C:C,"Expense")' +
+     '-IFERROR(SUMIF(\'Group Splits\'!J:J,Dashboard!$E$2,\'Group Splits\'!H:H),0)',
      PKR_FORMAT, COLORS.PRIMARY],
   ];
   metrics.forEach(function(m) {

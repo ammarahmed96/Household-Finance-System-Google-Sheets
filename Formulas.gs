@@ -66,6 +66,27 @@ var SHARED_NET_FORMULA =
   '"SELECT Col12, SUM(Col8) WHERE Col12 IS NOT NULL GROUP BY Col12 LABEL SUM(Col8) \'\'",0),{"",0}),' +
   'normalShared+SUM(splitAmts-IFERROR(VLOOKUP(splitKeys,reimb,2,FALSE),0))),0)';
 
+// ── CATEGORY NET FORMULA BUILDER ──────────────────────────────
+// Generates a net spending formula for one expense category.
+// Identical two-part logic to PERSONAL/SHARED_NET_FORMULA:
+//   1. Normal rows (Group Split?≠Yes) are summed directly — no TX Key needed.
+//   2. Group-split rows (Group Split?=Yes, TX Key present) use TX Key to look up
+//      and subtract linked reimbursements from Group Splits.
+// Param: cat — category name string matching Transactions col D values.
+
+function buildCategoryNetFormula(cat) {
+  return '=IFERROR(LET(' +
+    'normalAmt,IFERROR(INDEX(QUERY(Transactions!A2:Q,' +
+    '"SELECT SUM(Col10) WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col4=\'' + cat + '\' AND (Col15<>\'Yes\' OR Col15 IS NULL) LABEL SUM(Col10) \'\'",0),1,1),0),' +
+    'splitTxData,IFERROR(QUERY(Transactions!A2:Q,' +
+    '"SELECT Col10, Col17 WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col4=\'' + cat + '\' AND Col15=\'Yes\' AND Col17 IS NOT NULL LABEL Col10 \'\', Col17 \'\'",0),{0,""}),' +
+    'splitAmts,INDEX(splitTxData,,1),' +
+    'splitKeys,INDEX(splitTxData,,2),' +
+    'reimb,IFERROR(QUERY(\'Group Splits\'!A4:L,' +
+    '"SELECT Col12, SUM(Col8) WHERE Col12 IS NOT NULL GROUP BY Col12 LABEL SUM(Col8) \'\'",0),{"",0}),' +
+    'normalAmt+SUM(splitAmts-IFERROR(VLOOKUP(splitKeys,reimb,2,FALSE),0))),0)';
+}
+
 function addFormulas(ss) {
   // ── Transactions ─────────────────────────────────────────
   var tx = ss.getSheetByName(SHEETS.TRANSACTIONS);

@@ -190,9 +190,15 @@ function setupDashboard(ss) {
     .setFontSize(11).setFontWeight('bold').setFontColor(COLORS.PRIMARY_DARK)
     .setVerticalAlignment('middle');
 
-  sh.getRange('I15:N15').merge();
+  sh.getRange('I15:K15').merge();
   sh.getRange('I15')
     .setValue('SPENDING BY CATEGORY')
+    .setFontSize(11).setFontWeight('bold').setFontColor(COLORS.PRIMARY_DARK)
+    .setVerticalAlignment('middle');
+
+  sh.getRange('L15:M15').merge();
+  sh.getRange('L15')
+    .setValue('SAVINGS GOALS')
     .setFontSize(11).setFontWeight('bold').setFontColor(COLORS.PRIMARY_DARK)
     .setVerticalAlignment('middle');
 
@@ -225,9 +231,7 @@ function setupDashboard(ss) {
   cats.forEach(function(cat, i) {
     var row = 17 + i;
     sh.getRange(row, 9).setValue(cat).setFontColor(COLORS.DARK_TEXT).setFontSize(10);
-    sh.getRange(row, 10).setFormula(
-      '=SUMIFS(Transactions!J:J,Transactions!M:M,E2,Transactions!C:C,"Expense",Transactions!D:D,"' + cat + '")'
-    );
+    sh.getRange(row, 10).setFormula(buildCategoryNetFormula(cat));
     sh.getRange(row, 11).setFormula('=IFERROR(J' + row + '/$E$6,0)');
     if (i % 2 === 1) {
       sh.getRange(row, 9, 1, 3).setBackground(COLORS.ALT_ROW);
@@ -240,6 +244,16 @@ function setupDashboard(ss) {
   sh.getRange(16, 2, 12, 6)
     .setBorder(true, true, true, true, null, null, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange(16, 9, 11, 3)
+    .setBorder(true, true, true, true, null, null, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+
+  // ── Savings Goals section (cols L-M, rows 16-26) ─────────
+  sh.getRange(16, 12, 1, 2).setValues([['Savings Goal', 'Progress']]);
+  styleHeaderRow(sh.getRange(16, 12, 1, 2));
+  sh.getRange(17, 12).setFormula(
+    '=IFERROR(FILTER({\'Savings Goals\'!A2:A10,\'Savings Goals\'!E2:E10},\'Savings Goals\'!A2:A10<>""),{"No goals",""})'
+  );
+  sh.getRange(17, 13, 10, 1).setNumberFormat(PCT_FORMAT);
+  sh.getRange(16, 12, 11, 2)
     .setBorder(true, true, true, true, null, null, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
   // ── Recent Transactions section ───────────────────────────
@@ -331,6 +345,15 @@ function formatDashboard(ss) {
     .setBackground(COLORS.LIGHT_GREEN).setFontColor('#166534')
     .setRanges([pctRange]).build();
 
+  // Savings Goals progress (col M, rows 17-26)
+  var savRange = sh.getRange(17, 13, 10, 1);
+  var savDone = SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberGreaterThanOrEqualTo(1).setFontColor(COLORS.SUCCESS).setRanges([savRange]).build();
+  var savNear = SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberBetween(0.5, 0.999).setFontColor(COLORS.WARNING).setRanges([savRange]).build();
+  var savLow = SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberLessThan(0.5).setFontColor(COLORS.DANGER).setRanges([savRange]).build();
+
   // Recent Transactions (rows 32-56): income rows green, alternating otherwise
   var txData = sh.getRange(32, 2, 25, 8);
   var txIncome = SpreadsheetApp.newConditionalFormatRule()
@@ -345,6 +368,7 @@ function formatDashboard(ss) {
     srGood, srWarn, srBad,
     reimbRule, reimbZero,
     budOver, budNear, budOk,
+    savDone, savNear, savLow,
     txIncome, txAlt,
   ]);
 }
