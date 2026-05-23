@@ -45,7 +45,7 @@ var PERSONAL_NET_FORMULA =
   '"SELECT Col10, Col17 WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col12=\'No\' AND Col15=\'Yes\' AND Col17 IS NOT NULL LABEL Col10 \'\', Col17 \'\'",0),{0,""}),' +
   'splitAmts,INDEX(splitTxData,,1),' +
   'splitKeys,INDEX(splitTxData,,2),' +
-  'reimb,IFERROR(QUERY(\'Group Splits\'!A4:L,' +
+  'reimb,IFERROR(QUERY(\'Group Splits\'!A2:L,' +
   '"SELECT Col12, SUM(Col8) WHERE Col12 IS NOT NULL GROUP BY Col12 LABEL SUM(Col8) \'\'",0),{"",0}),' +
   'normalPersonal+SUM(splitAmts-IFERROR(VLOOKUP(splitKeys,reimb,2,FALSE),0))),0)';
 
@@ -62,7 +62,7 @@ var SHARED_NET_FORMULA =
   '"SELECT Col10, Col17 WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col12=\'Yes\' AND Col15=\'Yes\' AND Col17 IS NOT NULL LABEL Col10 \'\', Col17 \'\'",0),{0,""}),' +
   'splitAmts,INDEX(splitTxData,,1),' +
   'splitKeys,INDEX(splitTxData,,2),' +
-  'reimb,IFERROR(QUERY(\'Group Splits\'!A4:L,' +
+  'reimb,IFERROR(QUERY(\'Group Splits\'!A2:L,' +
   '"SELECT Col12, SUM(Col8) WHERE Col12 IS NOT NULL GROUP BY Col12 LABEL SUM(Col8) \'\'",0),{"",0}),' +
   'normalShared+SUM(splitAmts-IFERROR(VLOOKUP(splitKeys,reimb,2,FALSE),0))),0)';
 
@@ -82,7 +82,7 @@ function buildCategoryNetFormula(cat) {
     '"SELECT Col10, Col17 WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col4=\'' + cat + '\' AND Col15=\'Yes\' AND Col17 IS NOT NULL LABEL Col10 \'\', Col17 \'\'",0),{0,""}),' +
     'splitAmts,INDEX(splitTxData,,1),' +
     'splitKeys,INDEX(splitTxData,,2),' +
-    'reimb,IFERROR(QUERY(\'Group Splits\'!A4:L,' +
+    'reimb,IFERROR(QUERY(\'Group Splits\'!A2:L,' +
     '"SELECT Col12, SUM(Col8) WHERE Col12 IS NOT NULL GROUP BY Col12 LABEL SUM(Col8) \'\'",0),{"",0}),' +
     'normalAmt+SUM(splitAmts-IFERROR(VLOOKUP(splitKeys,reimb,2,FALSE),0))),0)';
 }
@@ -147,12 +147,12 @@ function addFormulas(ss) {
 
   // ── Group Splits ─────────────────────────────────────────
   var gs = ss.getSheetByName(SHEETS.GROUP_SPLITS);
-  gs.getRange('I4:J').clearContent();
-  gs.getRange('I4').setFormula(
-    '=ARRAYFORMULA(IF(F4:F="","",G4:G-IF(H4:H="",0,H4:H)))'
+  gs.getRange('I2:J').clearContent();
+  gs.getRange('I2').setFormula(
+    '=ARRAYFORMULA(IF(F2:F="","",G2:G-IF(H2:H="",0,H2:H)))'
   );
-  gs.getRange('J4').setFormula(
-    '=ARRAYFORMULA(IF(A4:A="","",TEXT(A4:A,"MMMM yyyy")))'
+  gs.getRange('J2').setFormula(
+    '=ARRAYFORMULA(IF(A2:A="","",TEXT(A2:A,"MMMM yyyy")))'
   );
 }
 

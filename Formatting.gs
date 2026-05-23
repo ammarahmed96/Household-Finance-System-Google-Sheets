@@ -120,7 +120,7 @@ function formatSubscriptions(ss) {
 
 function formatGroupSplits(ss) {
   var sh   = ss.getSheetByName(SHEETS.GROUP_SPLITS);
-  var data = sh.getRange(4, 1, 496, 11);
+  var data = sh.getRange(2, 1, 496, 11);
 
   var altRow = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=ISEVEN(ROW())')
@@ -128,19 +128,19 @@ function formatGroupSplits(ss) {
 
   // Fully reimbursed → green
   var paid = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=AND($F4<>"",$I4=0)')
+    .whenFormulaSatisfied('=AND($F2<>"",$I2=0)')
     .setBackground(COLORS.LIGHT_GREEN).setRanges([data]).build();
 
   // Partially reimbursed → yellow
   var partial = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=AND($H4>0,$I4>0)')
+    .whenFormulaSatisfied('=AND($H2>0,$I2>0)')
     .setBackground(COLORS.LIGHT_YELLOW).setRanges([data]).build();
 
   // Nothing received yet → light red on Outstanding cell only
   var none = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=AND($F4<>"",$H4=0,$I4>0)')
+    .whenFormulaSatisfied('=AND($F2<>"",$H2=0,$I2>0)')
     .setBackground(COLORS.LIGHT_RED).setFontColor(COLORS.DANGER)
-    .setRanges([sh.getRange(4, 9, 496, 1)]).build();
+    .setRanges([sh.getRange(2, 9, 496, 1)]).build();
 
   sh.setConditionalFormatRules([altRow, paid, partial, none]);
 }
@@ -192,7 +192,7 @@ function addFilters(ss) {
     { name: SHEETS.INCOME,        hdrRow: 1, cols: 7  },
     { name: SHEETS.SAVINGS,       hdrRow: 1, cols: 8  },
     { name: SHEETS.SUBSCRIPTIONS, hdrRow: 1, cols: 13 },
-    { name: SHEETS.GROUP_SPLITS,  hdrRow: 3, cols: 11 },
+    { name: SHEETS.GROUP_SPLITS,  hdrRow: 1, cols: 11 },
   ];
   configs.forEach(function(cfg) {
     var sh = ss.getSheetByName(cfg.name);
@@ -213,7 +213,7 @@ function protectHeaders(ss) {
     { sheet: SHEETS.INCOME,        row: 1, col: 1, rows: 1, cols: 7,  desc: 'Income header' },
     { sheet: SHEETS.SAVINGS,       row: 1, col: 1, rows: 1, cols: 8,  desc: 'Savings Goals header' },
     { sheet: SHEETS.SUBSCRIPTIONS, row: 1, col: 1, rows: 1, cols: 13, desc: 'Subscriptions header' },
-    { sheet: SHEETS.GROUP_SPLITS,  row: 1, col: 1, rows: 3, cols: 11, desc: 'Group Splits banner & header' },
+    { sheet: SHEETS.GROUP_SPLITS,  row: 1, col: 1, rows: 1, cols: 11, desc: 'Group Splits header' },
     { sheet: SHEETS.DASHBOARD,     row: 1, col: 2, rows: 3, cols: 13, desc: 'Dashboard banner' },
   ];
   targets.forEach(function(t) {
@@ -529,7 +529,7 @@ function addSectionDividers(ss) {
     { sheet: SHEETS.INCOME,        row: 1, cols: 7  },
     { sheet: SHEETS.SAVINGS,       row: 1, cols: 8  },
     { sheet: SHEETS.SUBSCRIPTIONS, row: 1, cols: 13 },
-    { sheet: SHEETS.GROUP_SPLITS,  row: 3, cols: 11 },
+    { sheet: SHEETS.GROUP_SPLITS,  row: 1, cols: 11 },
   ];
   hdrBorders.forEach(function(s) {
     var sh = ss.getSheetByName(s.sheet);
@@ -539,16 +539,16 @@ function addSectionDividers(ss) {
     );
   });
 
-  // Reimbursements: medium border around summary panel
+  // Reimbursements: medium border around summary panel (J1:K4 after col+row shift)
   var reimb = ss.getSheetByName(SHEETS.REIMBURSEMENTS);
-  if (reimb) reimb.getRange('K3:L6').setBorder(
+  if (reimb) reimb.getRange('J1:K4').setBorder(
     true, true, true, true, null, null,
     COLORS.PRIMARY, SpreadsheetApp.BorderStyle.SOLID_MEDIUM
   );
 
-  // Group Splits: medium border around totals panel
+  // Group Splits: medium border around totals panel (M1:N4 after row shift)
   var gs = ss.getSheetByName(SHEETS.GROUP_SPLITS);
-  if (gs) gs.getRange('M3:N6').setBorder(
+  if (gs) gs.getRange('M1:N4').setBorder(
     true, true, true, true, null, null,
     COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID_MEDIUM
   );

@@ -100,14 +100,14 @@ function createTables(ss) {
     { sheetName: SHEETS.INCOME,         name: TABLE_NAMES.INCOME,              cols: 7  },
     { sheetName: SHEETS.SAVINGS,        name: TABLE_NAMES.SAVINGS,             cols: 8  },
     { sheetName: SHEETS.SUBSCRIPTIONS,  name: TABLE_NAMES.SUBSCRIPTIONS,       cols: 13 },
-    // Group Splits: main table starts at row 3 (index 2) — rows 1-2 are merged banners
-    { sheetName: SHEETS.GROUP_SPLITS,   name: TABLE_NAMES.GROUP_SPLITS,        cols: 11, startRow: 2 },
-    // Group Splits: TOTALS mini-table M3:N6
-    { sheetName: SHEETS.GROUP_SPLITS,   name: TABLE_NAMES.GROUP_SPLITS_TOTALS, cols: 2,  startRow: 2, startCol: 12, fixedEndRow: 6 },
-    // Reimbursements: main data table starts at row 3 (index 2), cols B-H
-    { sheetName: SHEETS.REIMBURSEMENTS, name: TABLE_NAMES.REIMB_MAIN,          cols: 7,  startRow: 2, startCol: 1  },
-    // Reimbursements: SUMMARY mini-table K3:L6
-    { sheetName: SHEETS.REIMBURSEMENTS, name: TABLE_NAMES.REIMB_SUMMARY,       cols: 2,  startRow: 2, startCol: 10, fixedEndRow: 6 },
+    // Group Splits: main table starts at row 1 (index 0), cols A-K
+    { sheetName: SHEETS.GROUP_SPLITS,   name: TABLE_NAMES.GROUP_SPLITS,        cols: 11 },
+    // Group Splits: TOTALS mini-table M1:N4
+    { sheetName: SHEETS.GROUP_SPLITS,   name: TABLE_NAMES.GROUP_SPLITS_TOTALS, cols: 2,  startCol: 12, fixedEndRow: 4 },
+    // Reimbursements: main data table starts at row 1 (index 0), cols A-G
+    { sheetName: SHEETS.REIMBURSEMENTS, name: TABLE_NAMES.REIMB_MAIN,          cols: 7  },
+    // Reimbursements: SUMMARY mini-table J1:K4
+    { sheetName: SHEETS.REIMBURSEMENTS, name: TABLE_NAMES.REIMB_SUMMARY,       cols: 2,  startCol: 9,  fixedEndRow: 4 },
   ];
 
   // Remove sheet filters before table creation.
