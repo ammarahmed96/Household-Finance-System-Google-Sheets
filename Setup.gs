@@ -57,9 +57,7 @@ function setupSheets(ss) {
 
 function setupLists(ss) {
   var sh = ss.getSheetByName(SHEETS.LISTS);
-  sh.clearContents();
-  sh.clearFormats();
-  sh.clearDataValidations();
+  sh.clear();
 
   var people  = [PERSON1, PERSON2];
   var types   = ['Expense', 'Income', 'Transfer'];
@@ -118,9 +116,7 @@ function setupLists(ss) {
 function setupTransactions(ss) {
   var sh    = ss.getSheetByName(SHEETS.TRANSACTIONS);
   var lists = ss.getSheetByName(SHEETS.LISTS);
-  sh.clearContents();
-  sh.clearFormats();
-  sh.clearDataValidations();
+  sh.clear();
 
   var headers = [
     'Date',         // A
@@ -202,9 +198,7 @@ function setupTransactions(ss) {
 function setupBudget(ss) {
   var sh    = ss.getSheetByName(SHEETS.BUDGET);
   var lists = ss.getSheetByName(SHEETS.LISTS);
-  sh.clearContents();
-  sh.clearFormats();
-  sh.clearDataValidations();
+  sh.clear();
 
   var headers = ['Month', 'Category', 'Type', 'Budget (PKR)', 'Actual (PKR)', 'Variance', '% Used', 'Notes'];
   var hdr = sh.getRange(1, 1, 1, headers.length);
@@ -251,9 +245,7 @@ function setupBudget(ss) {
 function setupIncome(ss) {
   var sh    = ss.getSheetByName(SHEETS.INCOME);
   var lists = ss.getSheetByName(SHEETS.LISTS);
-  sh.clearContents();
-  sh.clearFormats();
-  sh.clearDataValidations();
+  sh.clear();
 
   var headers = ['Date', 'Person', 'Source', 'Description', 'Amount (PKR)', 'Month', 'Notes'];
   var hdr = sh.getRange(1, 1, 1, headers.length);
@@ -281,9 +273,7 @@ function setupIncome(ss) {
 
 function setupSavingsGoals(ss) {
   var sh = ss.getSheetByName(SHEETS.SAVINGS);
-  sh.clearContents();
-  sh.clearFormats();
-  sh.clearDataValidations();
+  sh.clear();
 
   var headers = [
     'Goal Name', 'Target (PKR)', 'Current (PKR)', 'Monthly Contribution',
@@ -331,9 +321,7 @@ function setupSavingsGoals(ss) {
 function setupSubscriptions(ss) {
   var sh    = ss.getSheetByName(SHEETS.SUBSCRIPTIONS);
   var lists = ss.getSheetByName(SHEETS.LISTS);
-  sh.clearContents();
-  sh.clearFormats();
-  sh.clearDataValidations();
+  sh.clear();
 
   var headers = [
     'Subscription', 'Payer', 'Monthly Cost (PKR)', 'Split With',
@@ -372,9 +360,7 @@ function setupSubscriptions(ss) {
 
 function setupInstructions(ss) {
   var sh = ss.getSheetByName(SHEETS.INSTRUCTIONS);
-  sh.clearContents();
-  sh.clearFormats();
-  sh.clearDataValidations();
+  sh.clear();
   sh.setColumnWidth(1, 30);
   sh.setColumnWidth(2, 800);
 
@@ -516,9 +502,7 @@ function setupRecurring(ss) {
 
   var sh    = ss.getSheetByName(SHEETS.RECURRING);
   var lists = ss.getSheetByName(SHEETS.LISTS);
-  sh.clearContents();
-  sh.clearFormats();
-  sh.clearDataValidations();
+  sh.clear();
 
   var headers = [
     'Description', 'Category', 'Amount (PKR)', 'Day of Month',
