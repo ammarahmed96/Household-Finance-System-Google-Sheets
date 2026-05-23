@@ -28,28 +28,23 @@ function setupReimbursements(ss) {
   sh.getRange('B1').setValue('REIMBURSEMENTS — Money Owed to Me')
     .setFontSize(16).setFontWeight('bold').setFontColor(COLORS.PRIMARY);
 
-  // ── Section banner ────────────────────────────────────────
-  sh.getRange('B3:H3')
-    .setBackground(COLORS.PRIMARY).setFontColor(COLORS.HEADER_FG)
-    .setFontWeight('bold').setFontSize(11);
-  sh.getRange('B3').setValue('Group Splits — Friends, Family & Colleagues');
-
   // ── Column headers ────────────────────────────────────────
   var hdrs = ['Date', 'Paid By', 'Event / Description', 'Owed By', 'Their Share (PKR)', 'Received (PKR)', 'Outstanding (PKR)'];
-  sh.getRange(4, 2, 1, hdrs.length).setValues([hdrs]);
-  styleHeaderRow(sh.getRange(4, 2, 1, hdrs.length), COLORS.PRIMARY_DARK);
-  sh.setFrozenRows(4);
+  sh.getRange(3, 2, 1, hdrs.length).setValues([hdrs]);
+  styleHeaderRow(sh.getRange(3, 2, 1, hdrs.length), COLORS.PRIMARY_DARK);
+  sh.setFrozenRows(3);
 
   // ── QUERY: outstanding group splits ──────────────────────
-  sh.getRange('B5').setFormula(
+  sh.getRange('B4').setFormula(
     "=IFERROR(QUERY('Group Splits'!A:I," +
     "\"SELECT A,B,C,F,G,H,I WHERE F<>'' AND I>0 ORDER BY A DESC\",0)," +
     '{"No outstanding group splits","","","","","",""})'
   );
 
-  // ── Summary panel ─────────────────────────────────────────
-  sh.getRange('K3').setValue('SUMMARY')
-    .setFontSize(13).setFontWeight('bold').setFontColor(COLORS.PRIMARY);
+  // ── Summary panel (two-column table: K3:L6) ──────────────
+  sh.getRange('K3').setValue('SUMMARY');
+  sh.getRange('L3').setValue('Amount (PKR)');
+  styleHeaderRow(sh.getRange(3, 11, 1, 2));
 
   var summaryRows = [
     ['Outstanding:',     "=IFERROR(SUM('Group Splits'!I:I),0)"],
@@ -62,7 +57,6 @@ function setupReimbursements(ss) {
       .setFontWeight(i === 0 ? 'bold' : 'normal')
       .setFontColor(i === 0 ? COLORS.DANGER : COLORS.DARK_TEXT);
   });
-  sh.getRange('K4:L4').setBackground(COLORS.LIGHT_YELLOW);
 
   // ── Column widths ─────────────────────────────────────────
   [100, 90, 220, 160, 130, 130, 140, 30, 30, 210, 120]
@@ -131,8 +125,10 @@ function setupGroupSplits(ss) {
   sh.getRange(4, 5, samples.length, 1).setNumberFormat(PKR_FORMAT);
   sh.getRange(4, 7, samples.length, 2).setNumberFormat(PKR_FORMAT);
 
-  // ── Summary totals (top-right) ────────────────────────────
-  sh.getRange('M3').setValue('TOTALS').setFontWeight('bold').setFontColor(COLORS.PRIMARY);
+  // ── Totals panel (two-column table: M3:N6) ───────────────
+  sh.getRange('M3').setValue('TOTALS');
+  sh.getRange('N3').setValue('Amount (PKR)');
+  styleHeaderRow(sh.getRange(3, 13, 1, 2));
   sh.getRange('M4').setValue('Total Outstanding:');
   sh.getRange('N4').setFormula('=IFERROR(SUM(I4:I1000),0)').setNumberFormat(PKR_FORMAT).setFontWeight('bold').setFontColor(COLORS.DANGER);
   sh.getRange('M5').setValue('Total Reimbursed:');

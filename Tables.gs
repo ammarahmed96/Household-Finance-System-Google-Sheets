@@ -35,11 +35,15 @@
 // ── TABLE NAME CONSTANTS ──────────────────────────────────────
 
 var TABLE_NAMES = {
-  TRANSACTIONS:  'TransactionsTable',
-  BUDGET:        'BudgetTable',
-  INCOME:        'IncomeTable',
-  SAVINGS:       'SavingsGoalsTable',
-  SUBSCRIPTIONS: 'SubscriptionsTable',
+  TRANSACTIONS:        'TransactionsTable',
+  BUDGET:              'BudgetTable',
+  INCOME:              'IncomeTable',
+  SAVINGS:             'SavingsGoalsTable',
+  SUBSCRIPTIONS:       'SubscriptionsTable',
+  GROUP_SPLITS:        'GroupSplitsTable',
+  GROUP_SPLITS_TOTALS: 'GroupSplitsTotalsTable',
+  REIMB_MAIN:          'ReimbursementsTable',
+  REIMB_SUMMARY:       'ReimbSummaryTable',
 };
 
 // ── TABLE DELETION ────────────────────────────────────────────
@@ -91,11 +95,19 @@ function createTables(ss) {
   var ssId = ss.getId();
 
   var defs = [
-    { sheetName: SHEETS.TRANSACTIONS,  name: TABLE_NAMES.TRANSACTIONS,  cols: 17 },
-    { sheetName: SHEETS.BUDGET,        name: TABLE_NAMES.BUDGET,        cols: 8  },
-    { sheetName: SHEETS.INCOME,        name: TABLE_NAMES.INCOME,        cols: 7  },
-    { sheetName: SHEETS.SAVINGS,       name: TABLE_NAMES.SAVINGS,       cols: 8  },
-    { sheetName: SHEETS.SUBSCRIPTIONS, name: TABLE_NAMES.SUBSCRIPTIONS, cols: 13 },
+    { sheetName: SHEETS.TRANSACTIONS,   name: TABLE_NAMES.TRANSACTIONS,        cols: 17 },
+    { sheetName: SHEETS.BUDGET,         name: TABLE_NAMES.BUDGET,              cols: 8  },
+    { sheetName: SHEETS.INCOME,         name: TABLE_NAMES.INCOME,              cols: 7  },
+    { sheetName: SHEETS.SAVINGS,        name: TABLE_NAMES.SAVINGS,             cols: 8  },
+    { sheetName: SHEETS.SUBSCRIPTIONS,  name: TABLE_NAMES.SUBSCRIPTIONS,       cols: 13 },
+    // Group Splits: main table starts at row 3 (index 2) — rows 1-2 are merged banners
+    { sheetName: SHEETS.GROUP_SPLITS,   name: TABLE_NAMES.GROUP_SPLITS,        cols: 11, startRow: 2 },
+    // Group Splits: TOTALS mini-table M3:N6
+    { sheetName: SHEETS.GROUP_SPLITS,   name: TABLE_NAMES.GROUP_SPLITS_TOTALS, cols: 2,  startRow: 2, startCol: 12, fixedEndRow: 6 },
+    // Reimbursements: main data table starts at row 3 (index 2), cols B-H
+    { sheetName: SHEETS.REIMBURSEMENTS, name: TABLE_NAMES.REIMB_MAIN,          cols: 7,  startRow: 2, startCol: 1  },
+    // Reimbursements: SUMMARY mini-table K3:L6
+    { sheetName: SHEETS.REIMBURSEMENTS, name: TABLE_NAMES.REIMB_SUMMARY,       cols: 2,  startRow: 2, startCol: 10, fixedEndRow: 6 },
   ];
 
   // Remove sheet filters before table creation.
@@ -112,17 +124,19 @@ function createTables(ss) {
   var requests = defs.reduce(function(acc, def) {
     var sh = ss.getSheetByName(def.sheetName);
     if (!sh) return acc;
-    var endRow = Math.max(sh.getLastRow() + 500, 1000);
+    var startRow = def.startRow  || 0;
+    var startCol = def.startCol  || 0;
+    var endRow   = def.fixedEndRow || Math.max(sh.getLastRow() + 500, 1000);
     acc.push({
       addTable: {
         table: {
           name: def.name,
           range: {
             sheetId:          sh.getSheetId(),
-            startRowIndex:    0,
+            startRowIndex:    startRow,
             endRowIndex:      endRow,
-            startColumnIndex: 0,
-            endColumnIndex:   def.cols,
+            startColumnIndex: startCol,
+            endColumnIndex:   startCol + def.cols,
           },
         }
       }
