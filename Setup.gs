@@ -453,7 +453,7 @@ function setupInstructions(ss) {
     ['', '• To mark settled: enter the amount in the Reimbursed column of Group Splits.'],
     ['', ''],
     ['SECTION', 'DASHBOARD TAB'],
-    ['', '• Change cell C2 to switch months (format: "May 2025").'],
+    ['', '• Use the Month dropdown (C2) and Year dropdown (D2) to switch reporting months. Cell E2 auto-shows "May 2026" and is used by all formulas.'],
     ['', '• All metrics update automatically. All figures in PKR.'],
     ['', ''],
     ['SECTION', 'GOOGLE FORM (Mobile Entry)'],

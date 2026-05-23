@@ -176,7 +176,7 @@ function upgradeToTableFormulas(ss) {
 
   // B6 — Monthly Income
   db.getRange('B6').setFormula(
-    '=SUMIFS(' + inc + '[Amount (PKR)],' + inc + '[Month],C2)'
+    '=SUMIFS(' + inc + '[Amount (PKR)],' + inc + '[Month],E2)'
   );
 
   // E6 — Total Spending (= B11 + E11, net of reimbursements)
@@ -210,7 +210,7 @@ function upgradeToTableFormulas(ss) {
   cats.forEach(function(cat, i) {
     db.getRange(17 + i, 10).setFormula(
       '=SUMIFS(' + tx + '[Amount (PKR)],' +
-      tx + '[Month],C2,' +
+      tx + '[Month],E2,' +
       tx + '[Type],"Expense",' +
       tx + '[Category],"' + cat + '")'
     );
@@ -259,7 +259,7 @@ function revertToA1Formulas(ss) {
 
   // Dashboard cards
   var db = ss.getSheetByName(SHEETS.DASHBOARD);
-  db.getRange('B6').setFormula('=SUMIFS(Income!E:E,Income!F:F,C2)');
+  db.getRange('B6').setFormula('=SUMIFS(Income!E:E,Income!F:F,E2)');
   db.getRange('E6').setFormula('=B11+E11');
   db.getRange('B11').setFormula(SHARED_NET_FORMULA);
   db.getRange('E11').setFormula(PERSONAL_NET_FORMULA);
@@ -274,7 +274,7 @@ function revertToA1Formulas(ss) {
   ];
   cats.forEach(function(cat, i) {
     db.getRange(17 + i, 10).setFormula(
-      '=SUMIFS(Transactions!J:J,Transactions!M:M,C2,Transactions!C:C,"Expense",Transactions!D:D,"' + cat + '")'
+      '=SUMIFS(Transactions!J:J,Transactions!M:M,E2,Transactions!C:C,"Expense",Transactions!D:D,"' + cat + '")'
     );
   });
 

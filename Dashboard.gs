@@ -4,7 +4,7 @@
 //
 // Dashboard layout (v2):
 //   Row  1  — Full-width header banner (B:N)
-//   Row  2  — Month selector (edit C2 to change months, format "May 2025")
+//   Row  2  — Month/Year selector (C2 = month dropdown, D2 = year dropdown, E2 = helper "May 2026")
 //   Row  3  — 4px solid PRIMARY divider
 //   Rows 4-8  — Card row 1: Income | Spending | Net Cash Flow | Savings Rate
 //   Rows 9-13 — Card row 2: Shared | Personal | Reimb. | Subscriptions
@@ -25,7 +25,13 @@ function setupDashboard(ss) {
   sh.clearFormats();
 
   var tz = Session.getScriptTimeZone();
-  var curMonth = Utilities.formatDate(new Date(), tz, 'MMMM yyyy');
+  var now = new Date();
+  var curMonthName = Utilities.formatDate(now, tz, 'MMMM');
+  var curYear = Utilities.formatDate(now, tz, 'yyyy');
+  var baseYear = parseInt(curYear, 10);
+  var yearsList = [];
+  for (var y = baseYear - 2; y <= baseYear + 3; y++) { yearsList.push(String(y)); }
+  var lists = ss.getSheetByName(SHEETS.LISTS);
 
   // ── Column widths ─────────────────────────────────────────
   sh.setColumnWidth(1, 20);   // A left margin
@@ -64,18 +70,34 @@ function setupDashboard(ss) {
     .setBackground(COLORS.PRIMARY);
 
   // ── Month selector (row 2) ────────────────────────────────
+  // C2 = month name dropdown ("May"), D2 = year dropdown ("2026"),
+  // E2 = formula helper =C2&" "&D2 → "May 2026" (used by all reporting formulas).
   sh.getRange('B2:N2').setBackground('#f1f3f4');
-  sh.getRange('B2').setValue('View month:')
+  sh.getRange('B2').setValue('Month / Year:')
     .setFontWeight('bold').setFontColor(COLORS.MID_TEXT)
     .setFontSize(10).setVerticalAlignment('middle');
-  sh.getRange('C2:D2').merge();
   sh.getRange('C2')
-    .setValue(curMonth)
+    .setValue(curMonthName)
     .setFontSize(12).setFontWeight('bold').setFontColor(COLORS.PRIMARY)
     .setVerticalAlignment('middle');
-  sh.getRange('E2:H2').merge();
+  setDropdown(sh, 2, 3, 1, lists.getRange('I2:I13'));
+  sh.getRange('D2')
+    .setValue(curYear)
+    .setFontSize(12).setFontWeight('bold').setFontColor(COLORS.PRIMARY)
+    .setVerticalAlignment('middle');
+  sh.getRange('D2').setDataValidation(
+    SpreadsheetApp.newDataValidation()
+      .requireValueInList(yearsList, true)
+      .setAllowInvalid(false)
+      .build()
+  );
   sh.getRange('E2')
-    .setValue('  ← Edit this cell to change months  (e.g. "April 2025")')
+    .setFormula('=C2&" "&D2')
+    .setFontSize(11).setFontWeight('bold').setFontColor(COLORS.PRIMARY)
+    .setVerticalAlignment('middle');
+  sh.getRange('F2:H2').merge();
+  sh.getRange('F2')
+    .setValue('  ← Select month and year above')
     .setFontColor(COLORS.MID_TEXT).setFontStyle('italic').setFontSize(9)
     .setVerticalAlignment('middle');
 
@@ -86,7 +108,7 @@ function setupDashboard(ss) {
   // ── Card definitions ──────────────────────────────────────
   var cards1 = [
     { label: 'Monthly Income',    subLabel: 'Total for selected month',
-      f: '=SUMIFS(Income!E:E,Income!F:F,C2)',
+      f: '=SUMIFS(Income!E:E,Income!F:F,E2)',
       fmt: PKR_FORMAT, col: 2, accentColor: COLORS.SUCCESS, bg: COLORS.LIGHT_GREEN },
     { label: 'Total Spending',    subLabel: 'Personal + shared, net of reimbursements',
       f: '=B11+E11',
@@ -183,7 +205,7 @@ function setupDashboard(ss) {
   // ── Budget QUERY (rows 17+) ───────────────────────────────
   sh.getRange('B17').setFormula(
     '=IFERROR(QUERY(Budget!A:G,' +
-    '"SELECT B,C,D,E,F,G WHERE A=\'"&C2&"\' AND B<>\'\'",0),' +
+    '"SELECT B,C,D,E,F,G WHERE A=\'"&E2&"\' AND B<>\'\'",0),' +
     '{"No budget data for this month","","","","",""})'
   );
 
@@ -204,7 +226,7 @@ function setupDashboard(ss) {
     var row = 17 + i;
     sh.getRange(row, 9).setValue(cat).setFontColor(COLORS.DARK_TEXT).setFontSize(10);
     sh.getRange(row, 10).setFormula(
-      '=SUMIFS(Transactions!J:J,Transactions!M:M,C2,Transactions!C:C,"Expense",Transactions!D:D,"' + cat + '")'
+      '=SUMIFS(Transactions!J:J,Transactions!M:M,E2,Transactions!C:C,"Expense",Transactions!D:D,"' + cat + '")'
     );
     sh.getRange(row, 11).setFormula('=IFERROR(J' + row + '/$E$6,0)');
     if (i % 2 === 1) {
@@ -243,7 +265,7 @@ function setupDashboard(ss) {
 
   sh.getRange(txDataRow, 2).setFormula(
     '=IFERROR(QUERY(Transactions!A:N,' +
-    '"SELECT A,B,D,F,G,H,J,C WHERE M=\'"&C2&"\' AND A IS NOT NULL ' +
+    '"SELECT A,B,D,F,G,H,J,C WHERE M=\'"&E2&"\' AND A IS NOT NULL ' +
     'ORDER BY A DESC LIMIT 25",0),' +
     '{"No transactions this month","","","","","","",""})'
   );

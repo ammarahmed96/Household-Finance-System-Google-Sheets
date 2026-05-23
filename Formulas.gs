@@ -30,35 +30,41 @@ var BUDGET_ACTUAL_FORMULA =
   '2,FALSE),0))))';
 
 // ── PERSONAL SPENDING NET FORMULA (Dashboard E11) ─────────────
-// For Shared?=No expense transactions in the selected month, subtracts
-// any reimbursed amounts received from friends via Group Splits.
-// QUERY groups Group Splits by Tx Key and sums col H (Reimbursed).
-// VLOOKUP matches each transaction's Tx Key to get its reimbursed total.
+// Two-part calculation:
+//   normalPersonal — rows where Shared?=No and Group Split?≠Yes (no TX Key needed)
+//   splitAmts/splitKeys — rows where Shared?=No AND Group Split?=Yes (TX Key present)
+//     → subtract reimbursements received via Group Splits for those linked rows
+// References E2 (the text helper "May 2026" from C2&" "&D2 dropdowns).
 // Must remain A1-style — QUERY does not support structured table refs.
 
 var PERSONAL_NET_FORMULA =
   '=IFERROR(LET(' +
-  'txData,QUERY(Transactions!A2:Q,' +
-  '"SELECT Col10,Col17 WHERE Col3=\'Expense\' AND Col13=\'"&C2&"\' AND Col12=\'No\' LABEL Col10\'\',Col17\'\'",0),' +
-  'txAmts,INDEX(txData,,1),' +
-  'txKeys,INDEX(txData,,2),' +
+  'normalPersonal,IFERROR(INDEX(QUERY(Transactions!A2:Q,' +
+  '"SELECT SUM(Col10) WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col12=\'No\' AND (Col15<>\'Yes\' OR Col15 IS NULL) LABEL SUM(Col10) \'\'",0),1,1),0),' +
+  'splitTxData,IFERROR(QUERY(Transactions!A2:Q,' +
+  '"SELECT Col10, Col17 WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col12=\'No\' AND Col15=\'Yes\' AND Col17 IS NOT NULL LABEL Col10 \'\', Col17 \'\'",0),{0,""}),' +
+  'splitAmts,INDEX(splitTxData,,1),' +
+  'splitKeys,INDEX(splitTxData,,2),' +
   'reimb,IFERROR(QUERY(\'Group Splits\'!A4:L,' +
-  '"SELECT Col12,SUM(Col8) WHERE Col12<>\'\' GROUP BY Col12 LABEL SUM(Col8)\'\'",0),{"",0}),' +
-  'SUM(txAmts-IFERROR(VLOOKUP(txKeys,reimb,2,FALSE),0))),0)';
+  '"SELECT Col12, SUM(Col8) WHERE Col12 IS NOT NULL GROUP BY Col12 LABEL SUM(Col8) \'\'",0),{"",0}),' +
+  'normalPersonal+SUM(splitAmts-IFERROR(VLOOKUP(splitKeys,reimb,2,FALSE),0))),0)';
 
 // ── SHARED SPENDING NET FORMULA (Dashboard B11) ────────────────
-// Identical to PERSONAL_NET_FORMULA but for Shared?=Yes transactions.
-// Subtracts reimbursements received from Group Splits for shared expenses.
+// Identical structure to PERSONAL_NET_FORMULA but for Shared?=Yes transactions.
+//   normalShared — shared rows where Group Split?≠Yes (no TX Key needed)
+//   splitTxData — shared rows where Group Split?=Yes (TX Key present, subtract reimb.)
 
 var SHARED_NET_FORMULA =
   '=IFERROR(LET(' +
-  'txData,QUERY(Transactions!A2:Q,' +
-  '"SELECT Col10,Col17 WHERE Col3=\'Expense\' AND Col13=\'"&C2&"\' AND Col12=\'Yes\' LABEL Col10\'\',Col17\'\'",0),' +
-  'txAmts,INDEX(txData,,1),' +
-  'txKeys,INDEX(txData,,2),' +
+  'normalShared,IFERROR(INDEX(QUERY(Transactions!A2:Q,' +
+  '"SELECT SUM(Col10) WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col12=\'Yes\' AND (Col15<>\'Yes\' OR Col15 IS NULL) LABEL SUM(Col10) \'\'",0),1,1),0),' +
+  'splitTxData,IFERROR(QUERY(Transactions!A2:Q,' +
+  '"SELECT Col10, Col17 WHERE Col3=\'Expense\' AND Col13=\'"&E2&"\' AND Col12=\'Yes\' AND Col15=\'Yes\' AND Col17 IS NOT NULL LABEL Col10 \'\', Col17 \'\'",0),{0,""}),' +
+  'splitAmts,INDEX(splitTxData,,1),' +
+  'splitKeys,INDEX(splitTxData,,2),' +
   'reimb,IFERROR(QUERY(\'Group Splits\'!A4:L,' +
-  '"SELECT Col12,SUM(Col8) WHERE Col12<>\'\' GROUP BY Col12 LABEL SUM(Col8)\'\'",0),{"",0}),' +
-  'SUM(txAmts-IFERROR(VLOOKUP(txKeys,reimb,2,FALSE),0))),0)';
+  '"SELECT Col12, SUM(Col8) WHERE Col12 IS NOT NULL GROUP BY Col12 LABEL SUM(Col8) \'\'",0),{"",0}),' +
+  'normalShared+SUM(splitAmts-IFERROR(VLOOKUP(splitKeys,reimb,2,FALSE),0))),0)';
 
 function addFormulas(ss) {
   // ── Transactions ─────────────────────────────────────────
