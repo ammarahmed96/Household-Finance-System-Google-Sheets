@@ -17,6 +17,7 @@ function setupReimbursements(ss) {
   var sh = ss.getSheetByName(SHEETS.REIMBURSEMENTS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   // ── Column headers (row 1) ────────────────────────────────
   var hdrs = ['Date', 'Paid By', 'Event / Description', 'Owed By', 'Their Share (PKR)', 'Received (PKR)', 'Outstanding (PKR)'];
@@ -58,6 +59,7 @@ function setupGroupSplits(ss) {
   var lists = ss.getSheetByName(SHEETS.LISTS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   // ── Column headers (row 1) ────────────────────────────────
   var headers = [

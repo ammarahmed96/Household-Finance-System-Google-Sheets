@@ -59,6 +59,7 @@ function setupLists(ss) {
   var sh = ss.getSheetByName(SHEETS.LISTS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   var people  = [PERSON1, PERSON2];
   var types   = ['Expense', 'Income', 'Transfer'];
@@ -119,6 +120,7 @@ function setupTransactions(ss) {
   var lists = ss.getSheetByName(SHEETS.LISTS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   var headers = [
     'Date',         // A
@@ -202,6 +204,7 @@ function setupBudget(ss) {
   var lists = ss.getSheetByName(SHEETS.LISTS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   var headers = ['Month', 'Category', 'Type', 'Budget (PKR)', 'Actual (PKR)', 'Variance', '% Used', 'Notes'];
   var hdr = sh.getRange(1, 1, 1, headers.length);
@@ -250,6 +253,7 @@ function setupIncome(ss) {
   var lists = ss.getSheetByName(SHEETS.LISTS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   var headers = ['Date', 'Person', 'Source', 'Description', 'Amount (PKR)', 'Month', 'Notes'];
   var hdr = sh.getRange(1, 1, 1, headers.length);
@@ -279,6 +283,7 @@ function setupSavingsGoals(ss) {
   var sh = ss.getSheetByName(SHEETS.SAVINGS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   var headers = [
     'Goal Name', 'Target (PKR)', 'Current (PKR)', 'Monthly Contribution',
@@ -328,6 +333,7 @@ function setupSubscriptions(ss) {
   var lists = ss.getSheetByName(SHEETS.LISTS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   var headers = [
     'Subscription', 'Payer', 'Monthly Cost (PKR)', 'Split With',
@@ -368,6 +374,7 @@ function setupInstructions(ss) {
   var sh = ss.getSheetByName(SHEETS.INSTRUCTIONS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
   sh.setColumnWidth(1, 30);
   sh.setColumnWidth(2, 800);
 
@@ -511,6 +518,7 @@ function setupRecurring(ss) {
   var lists = ss.getSheetByName(SHEETS.LISTS);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   var headers = [
     'Description', 'Category', 'Amount (PKR)', 'Day of Month',

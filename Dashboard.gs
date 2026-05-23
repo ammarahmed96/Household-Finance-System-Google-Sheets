@@ -23,6 +23,7 @@ function setupDashboard(ss) {
   var sh = ss.getSheetByName(SHEETS.DASHBOARD);
   sh.clearContents();
   sh.clearFormats();
+  sh.clearDataValidations();
 
   var tz = Session.getScriptTimeZone();
   var now = new Date();
