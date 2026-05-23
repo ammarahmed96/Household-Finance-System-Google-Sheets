@@ -22,6 +22,7 @@
 function setupDashboard(ss) {
   var sh = ss.getSheetByName(SHEETS.DASHBOARD);
   sh.clear();
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
 
   var tz = Session.getScriptTimeZone();
   var now = new Date();
